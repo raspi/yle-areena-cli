@@ -22,6 +22,10 @@ List seasons (1-4555656 = Das Boot):
 List categories (such as comedy, drama, ..):
 
     % python main.py categories
+    
+Search for series (comedy, not for children):
+
+    % python main.py search-series --category 5-136 --ignore 5-258,5-259
 
 ## Setup
 
@@ -30,7 +34,6 @@ Get Yle Areena API key from [Yle's site](https://tunnus.yle.fi/#api-avaimet).
     % cp config.json.dist config.json
     % $EDITOR config.json
     % python main.py --help
-
 
 ## Requirements
 
