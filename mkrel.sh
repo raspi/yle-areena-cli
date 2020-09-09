@@ -7,3 +7,4 @@ git add VERSION
 git tag "v$VER" -m "v$VER"
 git commit -m "v$VER"
 git push --tags
+git push
