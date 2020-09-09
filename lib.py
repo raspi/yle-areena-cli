@@ -419,10 +419,10 @@ class YleAreena:
             q = {
                 "app_id": self.appid,
                 "app_key": self.appkey,
-                "limit": limit,
-                "offset": offset,
                 "availability": "ondemand",
                 "type": "program",
+                "limit": limit,
+                "offset": offset,
                 "order": ",".join(order),
             }
 
@@ -483,11 +483,12 @@ class YleAreena:
         q = {
             "app_id": self.appid,
             "app_key": self.appkey,
+            "publisher": "yle-areena",
+            "type": "program",
+            "availability": "ondemand",
             "offset": offset,
             "limit": limit,
             "order": ",".join(order),
-            "type": "program",
-            "availability": "ondemand",
         }
 
         if seasonId is not None:
