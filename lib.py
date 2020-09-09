@@ -293,6 +293,12 @@ class YleAreena:
         return data
 
     def _get_title(self, raw: dict) -> str:
+        """
+        Get title / description in some language
+        :param raw:
+        :return:
+        """
+
         tries = ['fi', 'en', 'sv']
 
         for i in tries:
@@ -629,6 +635,7 @@ class YleAreena:
                 categories.append(Category(c['id'], self._get_title(c['title'])))
 
             if end is None:
+                # End was not given, use custom time
                 end = datetime.datetime.now() + datetime.timedelta(weeks=52 * 10)
                 print()
 
