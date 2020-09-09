@@ -13,6 +13,7 @@ from time import sleep
 from base64 import urlsafe_b64decode
 from base64 import urlsafe_b64encode
 from pathlib import Path
+from typing import List
 
 
 # https://developer.yle.fi/tutorial-listing-programs/index.html
@@ -63,6 +64,13 @@ class Season:
 
     def __str__(self):
         return f"{self.id}\t\t[S{self.season:02}] {self.name}"
+
+    def __dict__(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "s": self.season,
+        }
 
 
 class Episode(dict):
@@ -123,6 +131,12 @@ class Series:
 
     def __str__(self):
         return f"{self.id}\t\t{self.name}"
+
+
+SeasonList = List[Season]
+EpisodeList = List[Episode]
+SeriesList = List[Series]
+CategoryList = List[Category]
 
 
 class YleAreena:
@@ -215,10 +229,11 @@ class YleAreena:
             return raw['en']
         else:
             return raw[raw.keys()[0]]
-    def _get_date(self, raw:str) -> datetime.datetime:
+
+    def _get_date(self, raw: str) -> datetime.datetime:
         return datetime.datetime.strptime(raw, "%Y-%m-%dT%H:%M:%S+03:00")
 
-    def getCategories(self) -> list:
+    def getCategories(self) -> CategoryList:
         cachetime = datetime.timedelta(days=1)
         items = []
         itemscount = None
@@ -305,7 +320,7 @@ class YleAreena:
 
         return items
 
-    def getSeries(self, catids: list = [], excludeCats: list = []) -> list:
+    def getSeries(self, catids: list = [], excludeCats: list = []) -> SeriesList:
         cachetime = datetime.timedelta(days=1)
         items = []
         itemscount = None
@@ -356,7 +371,14 @@ class YleAreena:
 
         return items
 
-    def getEpisodesBySeriesId(self, seriesId: str, seasonId: int = None):
+    def getEpisodesBySeriesId(self, seriesId: str, seasonId: str = None) -> EpisodeList:
+        """
+        List episodes
+        :param seriesId: for example 1-4555656
+        :param seasonId: optional season ID, for example 1-4553280
+        :return:
+        """
+
         cachetime = datetime.timedelta(hours=4)
 
         offset = 0
@@ -374,6 +396,9 @@ class YleAreena:
             "availability": "ondemand",
         }
 
+        if seasonId is not None:
+            q['season'] = seasonId
+
         url = f"https://areena.yle.fi/api/programs/v1/episodes/{seriesId}.json" + self._qstr(q)
         resp = self._dl_url(url, cachetime)
         data = resp['data']
@@ -383,17 +408,13 @@ class YleAreena:
 
         episodes = []
         for ep in data:
-
-            if seasonId is not None and ep['partOfSeason']['seasonNumber'] != seasonId:
-                continue
-
-            availableFrom = None
-            availableUntil = None
+            start = None  # Date and time when episode become available
+            end = None  # Date and time when episode becomes unavailable
 
             for p in ep['publicationEvent']:
                 if 'yle-areena' in p['service']['id'] and 'yle-areena' in p['publisher'][0]['id']:
-                    availableUntil = self._get_date(p['endTime'])
-                    availableFrom = self._get_date(p['startTime'])
+                    start = self._get_date(p['startTime'])
+                    end = self._get_date(p['endTime'])
                     break
 
             episodes.append(Episode(
@@ -402,12 +423,19 @@ class YleAreena:
                 ep['episodeNumber'],
                 self._get_title(ep['title']),
                 self._get_title(ep['description']),
-                availableFrom,
-                availableUntil,
+                start,
+                end,
             ))
+
         return episodes
 
-    def getSeriesById(self, id) -> list:
+    def getSeasonsById(self, id: str) -> SeasonList:
+        """
+        List season IDs for certain series
+        :param id:
+        :return:
+        """
+
         cachetime = datetime.timedelta(hours=4)
 
         offset = 0
@@ -423,10 +451,14 @@ class YleAreena:
         url = f"https://{self.domain}/v1/series/items/{id}.json" + self._qstr(q)
 
         resp = self._dl_url(url, cachetime)
-        for season in resp['data']:
-            pass
+        data = resp['data']
+        seasons = []
+        for season in data['season']:
+            seasons.append(Season(season['id'], season['seasonNumber'], self._get_title(season['title'])))
 
-    def getProgramById(self, id) -> dict:
+        return seasons
+
+    def getProgramById(self, id: str) -> dict:
         cachetime = datetime.timedelta(hours=4)
 
         q = {

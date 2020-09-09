@@ -1,3 +1,4 @@
+#!/bin/env/python
 import argparse
 import json
 import logging
@@ -7,7 +8,10 @@ from pprint import pprint
 from argparse import FileType
 from lib import YleAreena, NotFound
 
-__VERSION__ = "0.0.1"
+__VERSION__ = None
+with open("VERSION", "r", encoding="utf8") as f:
+    __VERSION__ = "".join(f.readlines()).strip()
+
 __AUTHOR__ = u"Pekka Järvinen"
 __YEAR__ = 2020
 __DESCRIPTION__ = u"Yle Areena API CLI"
@@ -17,7 +21,10 @@ thisfile = os.path.basename(__file__)
 
 __EXAMPLES__ = [
     '',
+    '{} seasons 1-4555656'.format(thisfile),
     '{} episodes 1-4555656'.format(thisfile),
+    '{} episodes 1-4555656 --season 1-4553280'.format(thisfile),
+    '{} categories'.format(thisfile),
 ]
 
 
@@ -49,14 +56,24 @@ class CLI:
 
         subp = parser.add_subparsers(dest='command', required=True, help="Command")
 
+        # Get episodes for series X
         episodes = subp.add_parser("episodes")
         episodes.add_argument("id")
-        episodes.add_argument("-s", "--season", required=False)
+        episodes.add_argument("-s", "--season", required=False, help="Season")
 
+        # Get category IDs
+        categories = subp.add_parser("categories")
+
+        # Get season IDs
+        seasons = subp.add_parser("seasons")
+        seasons.add_argument("id")
+
+        # Parse arguments
         args = parser.parse_args()
 
         if int(args.verbose) > 0:
-            logging.getLogger().setLevel(logging.DEBUG)
+            # Verbose
+            self.log.setLevel(logging.DEBUG)
             self.log.info("Being verbose")
 
         config = {}
@@ -69,12 +86,11 @@ class CLI:
             self.printJson = True
 
         if args.command == 'episodes':
-            try:
-                args.season = int(args.season)
-            except TypeError:
-                pass
-
             self.episodes(args.id, args.season)
+        elif args.command == 'categories':
+            self.categories()
+        elif args.command == 'seasons':
+            self.seasons(args.id)
 
     def episodes(self, serid: str, season: int = None):
         """
@@ -86,6 +102,24 @@ class CLI:
         """
 
         for i in self.client.getEpisodesBySeriesId(serid, season):
+            if self.printJson:
+                print(json.dumps(i.__dict__()))
+            else:
+                print(i)
+
+    def categories(self):
+        """
+        List categories
+        :return:
+        """
+        for i in self.client.getCategories():
+            if self.printJson:
+                print(json.dumps(i.__dict__()))
+            else:
+                print(i)
+
+    def seasons(self, seriesId: str = None):
+        for i in self.client.getSeasonsById(seriesId):
             if self.printJson:
                 print(json.dumps(i.__dict__()))
             else:
