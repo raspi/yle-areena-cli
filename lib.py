@@ -205,6 +205,7 @@ class Program(dict):
 SeasonList = List[Season]
 EpisodeList = List[Episode]
 SeriesList = List[Series]
+ProgramList = List[Program]
 
 
 class YleAreena:
@@ -301,7 +302,8 @@ class YleAreena:
         return raw[list(raw.keys())[0]]
 
     def _get_date(self, raw: str) -> datetime.datetime:
-        return datetime.datetime.strptime(raw, "%Y-%m-%dT%H:%M:%S+03:00")
+        d = datetime.datetime.strptime(raw, "%Y-%m-%dT%H:%M:%S%z")
+        return datetime.datetime(d.year, d.month, d.day, d.hour, d.minute, d.second)
 
     def getCategories(self) -> CategoryList:
         cachetime = datetime.timedelta(days=1)
@@ -544,7 +546,7 @@ class YleAreena:
 
         return seasons
 
-    def getProgramById(self, id: str) -> dict:
+    def searchProgramById(self, id: str) -> Program:
         cachetime = datetime.timedelta(hours=4)
 
         q = {
@@ -577,3 +579,65 @@ class YleAreena:
                        end,
                        categories
                        )
+
+    def searchPrograms(self, query: str = None, id: str = None, series: str = None,
+                       categories: CategoryList = []) -> ProgramList:
+        cachetime = datetime.timedelta(hours=4)
+
+        q = {
+            "app_id": self.appid,
+            "app_key": self.appkey,
+            "publisher": "yle-areena",
+            "availability": "ondemand",
+        }
+
+        if query is not None:
+            q['q'] = query
+
+        if id is not None:
+            q['id'] = id
+
+        if series is not None:
+            q['series'] = series
+
+        if len(categories) > 0:
+            q['category'] = categories
+
+        url = f"https://{self.apidomain}/v1/programs/items.json" + self._qstr(q)
+
+        programs = []
+        resp = self._dl_url(url, cachetime)
+        for data in resp['data']:
+            if not data['title']:
+                continue
+
+            if not data['description']:
+                data['description'] = {"fi": "-"}
+
+            start = None  # Date and time when episode become available
+            end = None  # Date and time when episode becomes unavailable
+
+            for p in data['publicationEvent']:
+                if 'yle-areena' in p['service']['id'] and 'yle-areena' in p['publisher'][0]['id']:
+                    start = self._get_date(p['startTime'])
+                    if 'endTime' in p:
+                        end = self._get_date(p['endTime'])
+                    break
+
+            categories = []
+            for c in data['subject']:
+                categories.append(Category(c['id'], self._get_title(c['title'])))
+
+            if end is None:
+                end = datetime.datetime.now() + datetime.timedelta(weeks=52 * 10)
+                print()
+
+            programs.append(Program(data['id'],
+                                    self._get_title(data['title']),
+                                    self._get_title(data['description']),
+                                    start,
+                                    end,
+                                    categories
+                                    ))
+
+        return programs

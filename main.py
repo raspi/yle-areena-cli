@@ -25,6 +25,9 @@ __EXAMPLES__ = [
     '{} episodes 1-4555656 --season 1-4553280'.format(thisfile),
     '{} search-series --category 5-136 --ignore 5-258,5-259'.format(thisfile),
     '{} program 1-50534749'.format(thisfile),
+    '{} search-programs -q docventures'.format(thisfile),
+    '{} search-programs --series 1-4555656'.format(thisfile),
+    '{} search-programs --id 1-50534749'.format(thisfile),
     '{} categories'.format(thisfile),
 ]
 
@@ -79,6 +82,14 @@ class CLI:
         program = subp.add_parser("program")
         program.add_argument("id")
 
+        search_programs = subp.add_parser("search-programs")
+        search_programs.add_argument("--id", dest='id', required=False)
+        search_programs.add_argument("--query", "-q", dest='query', required=False)
+        search_programs.add_argument("--series", dest='series', required=False)
+        search_programs.add_argument("--category", "-c", dest='categories', required=False,
+                                     help="Category IDs (See 'categories' command for list")
+        search_programs.add_argument("--ignore", "-i", dest='ignore', required=False, help="Category IDs to ignore")
+
         # Parse arguments
         args = parser.parse_args()
 
@@ -113,21 +124,47 @@ class CLI:
 
             self.search_series(cats, ignorecats)
         elif args.command == 'program':
-            self.program(args.id)
+            self.program(
+                args.id,
+            )
+        elif args.command == 'search-programs':
+            cats = []
+            ignorecats = []
 
-    def program(self, id: str):
+            if args.categories is not None:
+                cats = args.categories.split(",")
+            if args.ignore is not None:
+                ignorecats = args.ignore.split(",")
+
+            self.search_programs(query=args.query, id=args.id, series=args.series, categories=cats)
+
+    def search_programs(self, query: str = None, id: str = None, series: str = None, categories: list = []):
+        """
+        Search program(s)
+        :param query:
+        :param id:
+        :param series:
+        :param categories:
+        :return:
+        """
+        for i in self.client.searchPrograms(query, id, series):
+            if self.printJson:
+                print(json.dumps(i.__dict__()))
+            else:
+                print(i)
+
+    def program(self, id: str = None):
         """
         Get program info
         :param id:
         :return:
         """
 
-        p = self.client.getProgramById(id)
-
+        i = self.client.searchProgramById(id)
         if self.printJson:
-            print(json.dumps(p.__dict__()))
+            print(json.dumps(i.__dict__()))
         else:
-            print(p)
+            print(i)
 
     def episodes(self, serid: str, season: int = None):
         """
