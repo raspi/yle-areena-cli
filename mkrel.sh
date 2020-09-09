@@ -2,7 +2,7 @@
 # Make new release
 VER=$1
 
-echo $VER > VERSION
+echo -n "$VER" > VERSION
 git add VERSION
 git tag "v$VER" -m "v$VER"
 git commit -m "v$VER"
