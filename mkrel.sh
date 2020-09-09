@@ -5,3 +5,4 @@ VER=$1
 echo $VER > VERSION
 git add VERSION
 git tag "v$VER" -m "v$VER"
+git push --tags
