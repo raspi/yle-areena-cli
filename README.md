@@ -1,13 +1,19 @@
 # yle-areena-cli
-Yle Areena CLI. Cache is written to `.cache` directory
+Yle Areena API CLI. See [developer web site](https://developer.yle.fi/en/index.html).
 
-## Usage example
+Cache for API JSON fils is written to `.cache` directory. 
+
+Use for example [yle-dl-docker](https://github.com/taskinen/yle-dl-docker) to download episodes.
+
+## Usage examples
 
 List episodes (Das Boot):
 
     % python main.py episodes 1-4555656
 
 ## Setup
+
+Get Yle Areena API key from [Yle's site](https://tunnus.yle.fi/#api-avaimet).
 
     % cp config.json.dist config.json
     % $EDITOR config.json
@@ -16,4 +22,4 @@ List episodes (Das Boot):
 
 ## Requirements
 
-* Python 3.6+
+* [Python](https://www.python.org/) 3.6+
