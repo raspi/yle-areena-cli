@@ -3,5 +3,4 @@
 VER=$1
 
 echo $VER > VERSION
-git tag "v$VER"
-git commit -m "v$VER"
+git tag "v$VER" -m "v$VER"
