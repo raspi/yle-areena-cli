@@ -23,6 +23,7 @@ __EXAMPLES__ = [
     '{} seasons 1-4555656'.format(thisfile),
     '{} episodes 1-4555656'.format(thisfile),
     '{} episodes 1-4555656 --season 1-4553280'.format(thisfile),
+    '{} search-series --category 5-136 --ignore 5-258,5-259'.format(thisfile),
     '{} categories'.format(thisfile),
 ]
 
@@ -58,7 +59,7 @@ class CLI:
         # Get episodes for series X
         episodes = subp.add_parser("episodes")
         episodes.add_argument("id")
-        episodes.add_argument("-s", "--season", required=False, help="Season")
+        episodes.add_argument("-s", "--season", required=False, help="Season id (not season number)")
 
         # Get category IDs
         categories = subp.add_parser("categories")
@@ -66,6 +67,12 @@ class CLI:
         # Get season IDs
         seasons = subp.add_parser("seasons")
         seasons.add_argument("id")
+
+        # Search series
+        search_series = subp.add_parser("search-series")
+        search_series.add_argument("--category", "-c", dest='categories', required=False, help="Category IDs (See 'categories' command for list")
+        search_series.add_argument("--ignore", "-i", dest='ignore', required=False, help="Category IDs to ignore")
+
 
         # Parse arguments
         args = parser.parse_args()
@@ -90,6 +97,16 @@ class CLI:
             self.categories()
         elif args.command == 'seasons':
             self.seasons(args.id)
+        elif args.command == 'search-series':
+            cats = []
+            ignorecats = []
+
+            if args.categories is not None:
+                cats = args.categories.split(",")
+            if args.ignore is not None:
+                ignorecats = args.ignore.split(",")
+
+            self.search_series(cats, ignorecats)
 
     def episodes(self, serid: str, season: int = None):
         """
@@ -118,7 +135,20 @@ class CLI:
                 print(i)
 
     def seasons(self, seriesId: str = None):
+        """
+        List seasons of certain series
+        :param seriesId:
+        :return:
+        """
+
         for i in self.client.getSeasonsById(seriesId):
+            if self.printJson:
+                print(json.dumps(i.__dict__()))
+            else:
+                print(i)
+
+    def search_series(self, categoryIds: list = [], notCategoryIds: list = []):
+        for i in self.client.getSeries(categoryIds, notCategoryIds):
             if self.printJson:
                 print(json.dumps(i.__dict__()))
             else:

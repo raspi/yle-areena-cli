@@ -34,7 +34,7 @@ class NotFound(AppException):
         return f"error: 404: {self.url}"
 
 
-class Category:
+class Category(dict):
     """
     Category
     """
@@ -48,8 +48,14 @@ class Category:
     def __str__(self):
         return f"{self.id: >15} {self.name}"
 
+    def __dict__(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+        }
 
-class Season:
+
+class Season(dict):
     """
     Season
     """
@@ -118,25 +124,40 @@ class Episode(dict):
         }
 
 
-class Series:
+CategoryList = List[Category]
+
+
+class Series(dict):
     """
     Series
     """
     id = None
     name = None
+    cats = None
 
-    def __init__(self, id: str, name: str):
+    def __init__(self, id: str, name: str, cats: CategoryList):
         self.id = id
         self.name = name
+        self.cats = cats
 
     def __str__(self):
-        return f"{self.id}\t\t{self.name}"
+        cats = []
+        for c in self.cats:
+            cats.append(f"{c.name} <{c.id}>")
+
+        return f"{self.id: >10} {self.name}\n\t\t[{', '.join(cats)}]"
+
+    def __dict__(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "cats": self.cats,
+        }
 
 
 SeasonList = List[Season]
 EpisodeList = List[Episode]
 SeriesList = List[Series]
-CategoryList = List[Category]
 
 
 class YleAreena:
@@ -224,13 +245,13 @@ class YleAreena:
         return data
 
     def _get_title(self, raw: dict) -> str:
-        tries = ['fi', 'en']
+        tries = ['fi', 'en', 'sv']
 
         for i in tries:
             if i in raw:
                 return raw[i]
 
-        return raw[raw.keys()[0]]
+        return raw[list(raw.keys())[0]]
 
     def _get_date(self, raw: str) -> datetime.datetime:
         return datetime.datetime.strptime(raw, "%Y-%m-%dT%H:%M:%S+03:00")
@@ -323,12 +344,21 @@ class YleAreena:
         return items
 
     def getSeries(self, catids: list = [], excludeCats: list = []) -> SeriesList:
-        cachetime = datetime.timedelta(days=1)
+        """
+        Search series
+        :param catids: optional categories
+        :param excludeCats: optional categories not to be included
+        :return:
+        """
+
+        cachetime = datetime.timedelta(hours=4)
+
         items = []
         itemscount = None
 
         offset = 0
         limit = 100
+        order = ["episode.hash:asc", "publication.starttime:asc", "title.fi:asc"]
 
         while len(items) != itemscount and offset <= 15000:
             q = {
@@ -337,6 +367,8 @@ class YleAreena:
                 "limit": limit,
                 "offset": offset,
                 "availability": "ondemand",
+                "type": "program",
+                "order": ",".join(order),
             }
 
             categories = []
@@ -349,6 +381,7 @@ class YleAreena:
                 categories.extend(map(lambda x: f"-{x}", excludeCats))
 
             if len(categories) > 0:
+                # Add to query
                 q["category"] = ",".join(categories)
 
             url = f"https://{self.apidomain}/v1/series/items.json" + self._qstr(q)
@@ -362,14 +395,18 @@ class YleAreena:
             offset += limit
 
             for i in resp['data']:
-                title = ""
-                if 'fi' in i['title']:
-                    title = i['title']['fi']
-                elif 'en' in i['title']:
-                    title = i['title']['en']
-                else:
-                    title = i['title'][i['title'].keys()[0]]
-                items.append(Series(i['id'], title))
+                if len(i['title']) == 0:
+                    continue
+
+                categories = []
+                for c in i['subject']:
+                    categories.append(Category(c['id'], self._get_title(c['title'])))
+
+                items.append(Series(
+                    i['id'],
+                    self._get_title(i['title']),
+                    categories,
+                ))
 
         return items
 
