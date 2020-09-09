@@ -148,7 +148,8 @@ class YleAreena:
     log = None
     cacheDir = ".cache"
     defaultCacheTime = datetime.timedelta(minutes=15)
-    domain = "external.api.yle.fi"
+    apidomain = "external.api.yle.fi"
+    areenadomain = "areena.yle.fi"
 
     def __init__(self, log: logging.Logger, appid: str, appkey: str):
         self.log = log
@@ -242,7 +243,7 @@ class YleAreena:
         limit = 100
 
         while len(items) != itemscount:
-            url = f"https://{self.domain}/v1/programs/categories.json" + self._qstr({
+            url = f"https://{self.apidomain}/v1/programs/categories.json" + self._qstr({
                 "app_id": self.appid,
                 "app_key": self.appkey,
                 "limit": limit,
@@ -271,7 +272,7 @@ class YleAreena:
         limit = 100
 
         while len(items) != itemscount:
-            url = f"https://{self.domain}/v1/programs/services.json" + self._qstr({
+            url = f"https://{self.apidomain}/v1/programs/services.json" + self._qstr({
                 "app_id": self.appid,
                 "app_key": self.appkey,
                 "limit": limit,
@@ -300,7 +301,7 @@ class YleAreena:
         limit = 100
 
         while len(items) != itemscount:
-            url = f"https://{self.domain}/v1/programs/schedules.json" + self._qstr({
+            url = f"https://{self.apidomain}/v1/programs/schedules.json" + self._qstr({
                 "app_id": self.appid,
                 "app_key": self.appkey,
                 "limit": limit,
@@ -349,7 +350,7 @@ class YleAreena:
             if len(categories) > 0:
                 q["category"] = ",".join(categories)
 
-            url = f"https://{self.domain}/v1/series/items.json" + self._qstr(q)
+            url = f"https://{self.apidomain}/v1/series/items.json" + self._qstr(q)
 
             resp = self._dl_url(url, cachetime)
             meta = resp['meta']
@@ -399,7 +400,7 @@ class YleAreena:
         if seasonId is not None:
             q['season'] = seasonId
 
-        url = f"https://areena.yle.fi/api/programs/v1/episodes/{seriesId}.json" + self._qstr(q)
+        url = f"https://{self.areenadomain}/api/programs/v1/episodes/{seriesId}.json" + self._qstr(q)
         resp = self._dl_url(url, cachetime)
         data = resp['data']
 
@@ -448,7 +449,7 @@ class YleAreena:
             "limit": limit,
         }
 
-        url = f"https://{self.domain}/v1/series/items/{id}.json" + self._qstr(q)
+        url = f"https://{self.apidomain}/v1/series/items/{id}.json" + self._qstr(q)
 
         resp = self._dl_url(url, cachetime)
         data = resp['data']
@@ -466,7 +467,7 @@ class YleAreena:
             "app_key": self.appkey,
         }
 
-        url = f"https://{self.domain}/v1/programs/items/{id}.json" + self._qstr(q)
+        url = f"https://{self.apidomain}/v1/programs/items/{id}.json" + self._qstr(q)
 
         resp = self._dl_url(url, cachetime)
         data = resp['data']
