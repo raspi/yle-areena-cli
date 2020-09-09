@@ -24,6 +24,7 @@ __EXAMPLES__ = [
     '{} episodes 1-4555656'.format(thisfile),
     '{} episodes 1-4555656 --season 1-4553280'.format(thisfile),
     '{} search-series --category 5-136 --ignore 5-258,5-259'.format(thisfile),
+    '{} program 1-50534749'.format(thisfile),
     '{} categories'.format(thisfile),
 ]
 
@@ -70,7 +71,8 @@ class CLI:
 
         # Search series
         search_series = subp.add_parser("search-series")
-        search_series.add_argument("--category", "-c", dest='categories', required=False, help="Category IDs (See 'categories' command for list")
+        search_series.add_argument("--category", "-c", dest='categories', required=False,
+                                   help="Category IDs (See 'categories' command for list")
         search_series.add_argument("--ignore", "-i", dest='ignore', required=False, help="Category IDs to ignore")
 
         # Program
