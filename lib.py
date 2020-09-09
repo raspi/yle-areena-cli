@@ -509,8 +509,13 @@ class YleAreena:
             for p in ep['publicationEvent']:
                 if 'yle-areena' in p['service']['id'] and 'yle-areena' in p['publisher'][0]['id']:
                     start = self._get_date(p['startTime'])
-                    end = self._get_date(p['endTime'])
+                    if 'endTime' in p:
+                        end = self._get_date(p['endTime'])
                     break
+
+            if end is None:
+                # End was not given, use custom time
+                end = datetime.datetime.now() + datetime.timedelta(weeks=52 * 10)
 
             episodes.append(Episode(
                 ep['id'],
