@@ -32,6 +32,10 @@ Search for series (comedy, not for children):
 
     % python main.py search-series --category 5-136 --ignore 5-258,5-259
 
+Show info for program:
+
+    % python main.py program 1-50534749
+
 ## Setup
 
 Get Yle Areena API key from [Yle's site](https://tunnus.yle.fi/#api-avaimet).
