@@ -38,6 +38,10 @@ Get Yle Areena API key from [Yle's site](https://tunnus.yle.fi/#api-avaimet).
 
 ## Development
 
+* https://developer.yle.fi/en/api/index.html
+* https://developer.yle.fi/en/tutorials/index.html
+* https://developer.yle.fi/tutorial-listing-programs/index.html
+
 Make new release:
 
     ./mkrel.sh <version>
