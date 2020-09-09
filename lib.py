@@ -135,7 +135,7 @@ class Series(dict):
     name = None
     cats = None
 
-    def __init__(self, id: str, name: str, cats: CategoryList):
+    def __init__(self, id: str, name: str, cats: CategoryList = []):
         self.id = id
         self.name = name
         self.cats = cats
@@ -152,6 +152,53 @@ class Series(dict):
             "id": self.id,
             "name": self.name,
             "cats": self.cats,
+        }
+
+
+class Program(dict):
+    """
+    Program
+    """
+    id = None
+    name = ""
+    descr = None
+    start = datetime.datetime.now()
+    end = datetime.datetime.now()
+    availableHuman = datetime.timedelta(seconds=0)
+    cats = []
+
+    def __init__(self, id: str, name: str, descr: str,
+                 start: datetime.datetime = datetime.datetime.now(),
+                 end: datetime.datetime = datetime.datetime.now(),
+                 cats: CategoryList = []
+                 ):
+        self.id = id
+        self.name = name
+        self.descr = descr
+        self.start = start
+        self.end = end
+        self.cats = cats
+        self.availableHuman = self.end - datetime.datetime.now().replace(microsecond=0)
+
+    def __str__(self):
+        available = f"{self.start.isoformat()} - {self.end.isoformat()}, {self.availableHuman}"
+
+        cats = []
+        for c in self.cats:
+            cats.append(f"{c.name} <{c.id}>")
+
+        return f"[{self.id}] {available}\n  {self.name}\n  {self.descr}\n  [{', '.join(cats)}]"
+
+    def __dict__(self):
+        return {
+            "start": self.start.isoformat(),
+            "end": self.end.isoformat(),
+            "id": self.id,
+            "name": self.name,
+            "availableSeconds": int(self.availableHuman.total_seconds()),
+            "availableHuman": self.availableHuman.__str__(),
+            "descr": self.descr,
+            "categories": self.cats,
         }
 
 
@@ -509,4 +556,24 @@ class YleAreena:
 
         resp = self._dl_url(url, cachetime)
         data = resp['data']
-        print()
+
+        start = None  # Date and time when episode become available
+        end = None  # Date and time when episode becomes unavailable
+
+        for p in data['publicationEvent']:
+            if 'yle-areena' in p['service']['id'] and 'yle-areena' in p['publisher'][0]['id']:
+                start = self._get_date(p['startTime'])
+                end = self._get_date(p['endTime'])
+                break
+
+        categories = []
+        for c in data['subject']:
+            categories.append(Category(c['id'], self._get_title(c['title'])))
+
+        return Program(data['id'],
+                       self._get_title(data['title']),
+                       self._get_title(data['description']),
+                       start,
+                       end,
+                       categories
+                       )

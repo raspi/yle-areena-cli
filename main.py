@@ -73,6 +73,9 @@ class CLI:
         search_series.add_argument("--category", "-c", dest='categories', required=False, help="Category IDs (See 'categories' command for list")
         search_series.add_argument("--ignore", "-i", dest='ignore', required=False, help="Category IDs to ignore")
 
+        # Program
+        program = subp.add_parser("program")
+        program.add_argument("id")
 
         # Parse arguments
         args = parser.parse_args()
@@ -107,6 +110,22 @@ class CLI:
                 ignorecats = args.ignore.split(",")
 
             self.search_series(cats, ignorecats)
+        elif args.command == 'program':
+            self.program(args.id)
+
+    def program(self, id: str):
+        """
+        Get program info
+        :param id:
+        :return:
+        """
+
+        p = self.client.getProgramById(id)
+
+        if self.printJson:
+            print(json.dumps(p.__dict__()))
+        else:
+            print(p)
 
     def episodes(self, serid: str, season: int = None):
         """
