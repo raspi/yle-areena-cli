@@ -78,8 +78,8 @@ class CLI:
         # Search series
         search_series = subp.add_parser("search-series")
         search_series.add_argument("--category", "-c", dest='categories', required=False,
-                                   help="Category IDs (See 'categories' command for list")
-        search_series.add_argument("--ignore", "-i", dest='ignore', required=False, help="Category IDs to ignore")
+                                   help="Category ID(s) (See 'categories' command for list")
+        search_series.add_argument("--ignore", "-i", dest='ignore', required=False, help="Category ID(s) to ignore")
 
         # Program
         program = subp.add_parser("program")
@@ -91,8 +91,8 @@ class CLI:
         search_programs.add_argument("--query", "-q", dest='query', required=False)
         search_programs.add_argument("--series", dest='series', required=False)
         search_programs.add_argument("--category", "-c", dest='categories', required=False,
-                                     help="Category IDs (See 'categories' command for list")
-        search_programs.add_argument("--ignore", "-i", dest='ignore', required=False, help="Category IDs to ignore")
+                                     help="Category ID(s) (See 'categories' command for list")
+        search_programs.add_argument("--ignore", "-i", dest='ignore', required=False, help="Category ID(s) to ignore")
 
         # Parse arguments
         args = parser.parse_args()
@@ -142,9 +142,11 @@ class CLI:
             if args.ignore is not None:
                 ignorecats = args.ignore.split(",")
 
-            self.search_programs(query=args.query, id=args.id, series=args.series, categories=cats)
+            self.search_programs(query=args.query, id=args.id, series=args.series, categories=cats,
+                                 notCategoryIds=ignorecats)
 
-    def search_programs(self, query: str = None, id: str = None, series: str = None, categories: list = []):
+    def search_programs(self, query: str = None, id: str = None, series: str = None, categories: list = [],
+                        notCategoryIds: list = []):
         """
         Search program(s)
         :param query:
@@ -153,7 +155,7 @@ class CLI:
         :param categories:
         :return:
         """
-        for i in self.client.searchPrograms(query, id, series):
+        for i in self.client.searchPrograms(query, id, series, categories, notCategoryIds):
             if self.printJson:
                 print(json.dumps(i.__dict__()))
             else:

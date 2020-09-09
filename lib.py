@@ -587,14 +587,19 @@ class YleAreena:
                        )
 
     def searchPrograms(self, query: str = None, id: str = None, series: str = None,
-                       categories: CategoryList = []) -> ProgramList:
+                       catids: list = [], excludeCats: list = []) -> ProgramList:
         cachetime = datetime.timedelta(hours=4)
+
+        offset = 0
+        limit = 100
 
         q = {
             "app_id": self.appid,
             "app_key": self.appkey,
             "publisher": "yle-areena",
             "availability": "ondemand",
+            "limit": limit,
+            "offset": offset,
         }
 
         if query is not None:
@@ -606,8 +611,18 @@ class YleAreena:
         if series is not None:
             q['series'] = series
 
+        categories = []
+
+        if len(catids) > 0:
+            categories.extend(catids)
+
+        if len(excludeCats) > 0:
+            # Exclude (Add '-' to front of category)
+            categories.extend(map(lambda x: f"-{x}", excludeCats))
+
         if len(categories) > 0:
-            q['category'] = categories
+            # Add to query
+            q["category"] = ",".join(categories)
 
         url = f"https://{self.apidomain}/v1/programs/items.json" + self._qstr(q)
 
@@ -630,21 +645,20 @@ class YleAreena:
                         end = self._get_date(p['endTime'])
                     break
 
-            categories = []
+            catIds = []
             for c in data['subject']:
-                categories.append(Category(c['id'], self._get_title(c['title'])))
+                catIds.append(Category(c['id'], self._get_title(c['title'])))
 
             if end is None:
                 # End was not given, use custom time
                 end = datetime.datetime.now() + datetime.timedelta(weeks=52 * 10)
-                print()
 
             programs.append(Program(data['id'],
                                     self._get_title(data['title']),
                                     self._get_title(data['description']),
                                     start,
                                     end,
-                                    categories
+                                    catIds
                                     ))
 
         return programs
