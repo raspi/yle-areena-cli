@@ -32,9 +32,22 @@ Search for series (comedy, not for children):
 
     % python main.py search-series --category 5-136 --ignore 5-258,5-259
 
-Show info for program:
+Show info for program (1-50534749 = Docventures: BLEED OUT):
 
     % python main.py program 1-50534749
+
+Search series programs (1-4555656 = Das Boot):
+
+    % python main.py search-programs --series 1-4555656
+
+Search for program(s) by name:
+
+    % python main.py search-programs -q docventures
+
+Search for program by id (1-50534749 = Docventures: BLEED OUT):
+
+    % python main.py search-programs --id 1-50534749
+
 
 ## Setup
 
