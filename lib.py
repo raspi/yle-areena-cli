@@ -187,7 +187,7 @@ class Program(dict):
         for c in self.cats:
             cats.append(f"{c.name} <{c.id}>")
 
-        return f"[{self.id}] {available}\n  {self.name}\n  {self.descr}\n  [{', '.join(cats)}]"
+        return f"[{self.id}] {available}\n    {self.name}\n    {self.descr}\n    - Categories:[{', '.join(cats)}]"
 
     def __dict__(self):
         return {
