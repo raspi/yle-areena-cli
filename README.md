@@ -1,4 +1,9 @@
 # yle-areena-cli
+
+![GitHub All Releases](https://img.shields.io/github/downloads/raspi/yle-areena-cli/total?style=for-the-badge)
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/raspi/yle-areena-cli?style=for-the-badge)
+![GitHub tag (latest by date)](https://img.shields.io/github/v/tag/raspi/yle-areena-cli?style=for-the-badge)
+
 Yle Areena API CLI. See [developer web site](https://developer.yle.fi/en/index.html).
 
 Cache for API JSON fils is written to `.cache` directory. 
