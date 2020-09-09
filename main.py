@@ -51,6 +51,9 @@ class CLI:
         parser.add_argument('--verbose', '-v', action='count', required=False, default=0, dest='verbose',
                             help="Be verbose. -vvv..v Be more verbose.")
 
+        parser.add_argument('--quiet', '-Q', required=False, default=False, dest='quiet',
+                            help="Be quiet (for scripting)")
+
         parser.add_argument('--json', '-J', dest='json', action='store_true', default=False,
                             help="Print JSON")
 
