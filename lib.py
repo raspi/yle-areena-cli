@@ -224,12 +224,13 @@ class YleAreena:
         return data
 
     def _get_title(self, raw: dict) -> str:
-        if 'fi' in raw:
-            return raw['fi']
-        elif 'en' in raw:
-            return raw['en']
-        else:
-            return raw[raw.keys()[0]]
+        tries = ['fi', 'en']
+
+        for i in tries:
+            if i in raw:
+                return raw[i]
+
+        return raw[raw.keys()[0]]
 
     def _get_date(self, raw: str) -> datetime.datetime:
         return datetime.datetime.strptime(raw, "%Y-%m-%dT%H:%M:%S+03:00")
