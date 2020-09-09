@@ -5,7 +5,6 @@ import logging
 import os
 import sys
 from pprint import pprint
-from argparse import FileType
 from lib import YleAreena, NotFound
 
 __VERSION__ = None
