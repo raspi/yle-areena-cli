@@ -85,6 +85,7 @@ class CLI:
         program = subp.add_parser("program")
         program.add_argument("id")
 
+        # Search program(s) with keywords, categories, series IDs, etc..
         search_programs = subp.add_parser("search-programs")
         search_programs.add_argument("--id", dest='id', required=False)
         search_programs.add_argument("--query", "-q", dest='query', required=False)
@@ -101,10 +102,12 @@ class CLI:
             self.log.setLevel(logging.DEBUG)
             self.log.info("Being verbose")
 
+        # Load JSON config file
         config = {}
         with args.config as f:
             config = json.loads(f.read())
 
+        # Init HTTP REST client
         self.client = YleAreena(self.log, config['appid'], config['appkey'])
 
         if args.json:
