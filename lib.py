@@ -3,6 +3,8 @@ import json
 import urllib.request
 import logging
 import os
+from shutil import move
+from tempfile import NamedTemporaryFile
 from urllib.error import HTTPError
 from urllib.parse import urlsplit, urlencode
 from urllib.parse import parse_qsl as queryparse
@@ -282,16 +284,23 @@ class YleAreena:
                 if response.headers.get_content_type() != "application/json":
                     raise ValueError("invalid content type")
 
-                resp: bytes = response.read()
+                resp: dict = json.loads(response.read())
 
                 if os.path.isfile(cachefile):
                     # Destroy stale cache
                     os.unlink(cachefile)
 
-                with open(cachefile, "wb") as f:
-                    f.write(resp)
+                # Save to temporary file
+                tmpf = NamedTemporaryFile("w", prefix="yle-areena-cli-", suffix=".json", encoding="utf8", delete=False)
+                with tmpf as f:
+                    json.dump(resp, f)
+                    f.flush()
 
-                data = json.loads(resp)
+                # Rename file
+                newpath = move(tmpf.name, cachefile)
+                self.log.debug(f"Renamed {tmpf.name} to {newpath}")
+
+                data = resp
         except HTTPError as e:
             raise e
 
