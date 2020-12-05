@@ -4,8 +4,7 @@ import json
 import logging
 import os
 import sys
-from pprint import pprint
-from lib import YleAreena, NotFound
+from lib import YleAreena
 
 __VERSION__ = None
 with open("VERSION", "r", encoding="utf8") as f:
@@ -111,15 +110,20 @@ class CLI:
         self.client = YleAreena(self.log, config['appid'], config['appkey'])
 
         if args.json:
+            # Use JSON output
             self.printJson = True
 
         if args.command == 'episodes':
+            # List episodes
             self.episodes(args.id, args.season)
         elif args.command == 'categories':
+            # List categories
             self.categories()
         elif args.command == 'seasons':
+            # List seasons
             self.seasons(args.id)
         elif args.command == 'search-series':
+            # Search for series
             cats = []
             ignorecats = []
 
@@ -130,10 +134,12 @@ class CLI:
 
             self.search_series(cats, ignorecats)
         elif args.command == 'program':
+            # Show program details
             self.program(
                 args.id,
             )
         elif args.command == 'search-programs':
+            # Search for program(s)
             cats = []
             ignorecats = []
 
@@ -143,19 +149,22 @@ class CLI:
                 ignorecats = args.ignore.split(",")
 
             self.search_programs(query=args.query, id=args.id, series=args.series, categories=cats,
-                                 notCategoryIds=ignorecats)
+                                 excluded_category_ids=ignorecats)
 
     def search_programs(self, query: str = None, id: str = None, series: str = None, categories: list = [],
-                        notCategoryIds: list = []):
+                        excluded_category_ids: list = []):
         """
         Search program(s)
+
         :param query:
         :param id:
         :param series:
         :param categories:
+        :param excluded_category_ids:
         :return:
         """
-        for i in self.client.searchPrograms(query, id, series, categories, notCategoryIds):
+
+        for i in self.client.searchPrograms(query, id, series, categories, excluded_category_ids):
             if self.printJson:
                 print(json.dumps(i.__dict__()))
             else:
@@ -183,7 +192,12 @@ class CLI:
         :return:
         """
 
-        for i in self.client.getEpisodesBySeriesId(serid, season):
+        episodes = self.client.getEpisodesBySeriesId(serid, season)
+
+        if len(episodes) == 0:
+            print("No episodes found.")
+
+        for i in episodes:
             if self.printJson:
                 print(json.dumps(i.__dict__()))
             else:

@@ -1,17 +1,12 @@
 import datetime
 import json
-import time
 import urllib.request
 import logging
 import os
-import sys
 from urllib.error import HTTPError
-from urllib.parse import urlsplit, urlencode, unquote, urljoin, urlunparse
+from urllib.parse import urlsplit, urlencode
 from urllib.parse import parse_qsl as queryparse
-from pprint import pprint
 from time import sleep
-from base64 import urlsafe_b64decode
-from base64 import urlsafe_b64encode
 from pathlib import Path
 from typing import List
 
@@ -24,14 +19,14 @@ class AppException(Exception):
     pass
 
 
-class NotFound(AppException):
+class NoResultsFound(AppException):
     url = ""
 
     def __init__(self, url: str):
         self.url = url
 
-    def __str__(self):
-        return f"error: 404: {self.url}"
+    def __str__(self) -> str:
+        return f"error: no results found for {self.url}"
 
 
 class Category(dict):
@@ -45,10 +40,10 @@ class Category(dict):
         self.id = id
         self.name = name
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.id: >15} {self.name}"
 
-    def __dict__(self):
+    def __dict__(self) -> dict:
         return {
             "id": self.id,
             "name": self.name,
@@ -68,10 +63,10 @@ class Season(dict):
         self.season = season
         self.name = name
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.id}\t\t[S{self.season:02}] {self.name}"
 
-    def __dict__(self):
+    def __dict__(self) -> dict:
         return {
             "id": self.id,
             "name": self.name,
@@ -105,12 +100,12 @@ class Episode(dict):
         self.end = end
         self.availableHuman = self.end - datetime.datetime.now().replace(microsecond=0)
 
-    def __str__(self):
+    def __str__(self) -> str:
         available = f"{self.start.isoformat()} - {self.end.isoformat()}, {self.availableHuman}"
 
         return f"S{self.season:02}E{self.episode:02} [{self.id}] {available}\n  {self.name}\n  {self.descr}"
 
-    def __dict__(self):
+    def __dict__(self) -> dict:
         return {
             "s": self.season,
             "e": self.episode,
@@ -140,14 +135,14 @@ class Series(dict):
         self.name = name
         self.cats = cats
 
-    def __str__(self):
+    def __str__(self) -> str:
         cats = []
         for c in self.cats:
             cats.append(f"{c.name} <{c.id}>")
 
         return f"{self.id: >10} {self.name}\n\t\t[{', '.join(cats)}]"
 
-    def __dict__(self):
+    def __dict__(self) -> dict:
         return {
             "id": self.id,
             "name": self.name,
@@ -159,7 +154,7 @@ class Program(dict):
     """
     Program
     """
-    id = None
+    id = ""
     name = ""
     descr = None
     start = datetime.datetime.now()
@@ -180,16 +175,24 @@ class Program(dict):
         self.cats = cats
         self.availableHuman = self.end - datetime.datetime.now().replace(microsecond=0)
 
-    def __str__(self):
+    def __str__(self) -> str:
         available = f"{self.start.isoformat()} - {self.end.isoformat()}, {self.availableHuman}"
 
-        cats = []
+        catnames = []
         for c in self.cats:
-            cats.append(f"{c.name} <{c.id}>")
+            catnames.append(c.name)
 
-        return f"[{self.id}] {available}\n    {self.name}\n    {self.descr}\n    - Categories:[{', '.join(cats)}]"
+        catids = []
+        for c in self.cats:
+            catids.append(c.id)
 
-    def __dict__(self):
+        out = f"[{self.id}] {available}\n    {self.name}\n    {self.descr}\n"
+        out += f"    - Categories: [{', '.join(catnames)}]\n"
+        out += f"    - Category IDs: [{', '.join(catids)}]\n"
+
+        return out
+
+    def __dict__(self) -> dict:
         return {
             "start": self.start.isoformat(),
             "end": self.end.isoformat(),
@@ -229,7 +232,7 @@ class YleAreena:
             # Create directory
             Path(self.cacheDir).mkdir(parents=True, exist_ok=True)
 
-    def _qstr(self, q: dict):
+    def _qstr(self, q: dict) -> str:
         """
         Dictionary to URL query string
         """
@@ -242,14 +245,14 @@ class YleAreena:
 
         # Remove all from url except path and query string
         urlS = urlsplit(url)
-        urltmp = urlS.path.lstrip("/").replace("/", "-")
-        urlQ = dict(queryparse(urlS.query))
+        urltmp: str = urlS.path.lstrip("/").replace("/", "-")
+        urlQ: dict = dict(queryparse(urlS.query))
         if 'app_id' in urlQ:
             del urlQ['app_id']
         if 'app_key' in urlQ:
             del urlQ['app_key']
 
-        urltmp += urlsafe_b64encode(self._qstr(urlQ).encode('utf8')).decode('utf8')
+        urltmp += self._qstr(urlQ)
 
         if cachetime is None:
             cachetime = self.defaultCacheTime
@@ -257,27 +260,29 @@ class YleAreena:
         cachefile = os.path.join(self.cacheDir, urltmp + ".json")
 
         if os.path.isfile(cachefile):
+            # Cache file exists
             now = datetime.datetime.now()
             fmodtime = datetime.datetime.fromtimestamp(os.path.getmtime(cachefile))
 
             if (fmodtime - now) <= cachetime:
-                # Read from cache
+                # Cache is not expired yet. Read from cache
                 self.log.debug(f"Getting <URL: {url} > from cache")
                 with open(cachefile, "r", encoding="utf8") as f:
                     return json.loads(f.read())
 
-        sleep(0.2)
-        data = None
+        data: dict = {}
 
         self.log.debug(f"Getting <URL: {url} >")
         try:
+            # Get from HTTP
+            sleep(0.2)
             with urllib.request.urlopen(url) as response:
                 if response.code != 200:
                     raise ValueError("url couldn't be loaded")
                 if response.headers.get_content_type() != "application/json":
                     raise ValueError("invalid content type")
 
-                resp = response.read()
+                resp: bytes = response.read()
 
                 if os.path.isfile(cachefile):
                     # Destroy stale cache
@@ -288,7 +293,7 @@ class YleAreena:
 
                 data = json.loads(resp)
         except HTTPError as e:
-            raise NotFound(e.url)
+            raise e
 
         return data
 
@@ -299,9 +304,9 @@ class YleAreena:
         :return:
         """
 
-        tries = ['fi', 'en', 'sv']
+        languages: list = ['fi', 'en', 'sv']
 
-        for i in tries:
+        for i in languages:
             if i in raw:
                 return raw[i]
 
@@ -313,13 +318,13 @@ class YleAreena:
 
     def getCategories(self) -> CategoryList:
         cachetime = datetime.timedelta(days=1)
-        items = []
-        itemscount = None
+        items: list = []
+        itemscount: int = -1
 
         offset = 0
         limit = 100
 
-        while len(items) != itemscount:
+        while itemscount != -1 and len(items) != itemscount:
             url = f"https://{self.apidomain}/v1/programs/categories.json" + self._qstr({
                 "app_id": self.appid,
                 "app_key": self.appkey,
@@ -330,7 +335,7 @@ class YleAreena:
             resp = self._dl_url(url, cachetime)
             meta = resp['meta']
 
-            if itemscount is None:
+            if itemscount == -1:
                 itemscount = meta['count']
 
             offset += limit
@@ -398,11 +403,11 @@ class YleAreena:
 
         return items
 
-    def getSeries(self, catids: list = [], excludeCats: list = []) -> SeriesList:
+    def getSeries(self, category_id_list: list = [], exclude_categories_list: list = []) -> SeriesList:
         """
         Search series
-        :param catids: optional categories
-        :param excludeCats: optional categories not to be included
+        :param category_id_list: optional categories
+        :param exclude_categories_list: optional categories not to be included
         :return:
         """
 
@@ -428,12 +433,12 @@ class YleAreena:
 
             categories = []
 
-            if len(catids) > 0:
-                categories.extend(catids)
+            if len(category_id_list) > 0:
+                categories.extend(category_id_list)
 
-            if len(excludeCats) > 0:
+            if len(exclude_categories_list) > 0:
                 # Exclude (Add '-' to front of category)
-                categories.extend(map(lambda x: f"-{x}", excludeCats))
+                categories.extend(map(lambda x: f"-{x}", exclude_categories_list))
 
             if len(categories) > 0:
                 # Add to query
@@ -465,15 +470,15 @@ class YleAreena:
 
         return items
 
-    def getEpisodesBySeriesId(self, seriesId: str, seasonId: str = None) -> EpisodeList:
+    def getEpisodesBySeriesId(self, series_id: str, season_id: str = None) -> EpisodeList:
         """
         List episodes
-        :param seriesId: for example 1-4555656
-        :param seasonId: optional season ID, for example 1-4553280
+        :param series_id: for example 1-4555656
+        :param season_id: optional season ID, for example 1-4553280
         :return:
         """
 
-        cachetime = datetime.timedelta(hours=4)
+        cache_time = datetime.timedelta(hours=4)
 
         offset = 0
         limit = 100
@@ -491,19 +496,19 @@ class YleAreena:
             "order": ",".join(order),
         }
 
-        if seasonId is not None:
-            q['season'] = seasonId
+        if season_id is not None:
+            q['season'] = season_id
 
-        url = f"https://{self.areenadomain}/api/programs/v1/episodes/{seriesId}.json" + self._qstr(q)
-        resp = self._dl_url(url, cachetime)
+        url = f"https://{self.areenadomain}/api/programs/v1/episodes/{series_id}.json" + self._qstr(q)
+        resp = self._dl_url(url, cache_time)
         data = resp['data']
 
+        episodes: EpisodeList = []
         if len(data) == 0:
-            raise NotFound(url)
+            return episodes
 
-        episodes = []
         for ep in data:
-            start = None  # Date and time when episode become available
+            start = None  # Date and time when episode became available
             end = None  # Date and time when episode becomes unavailable
 
             for p in ep['publicationEvent']:
@@ -554,12 +559,22 @@ class YleAreena:
         data = resp['data']
         seasons = []
         for season in data['season']:
-            seasons.append(Season(season['id'], season['seasonNumber'], self._get_title(season['title'])))
+            seasons.append(Season(
+                season['id'],
+                season['seasonNumber'],
+                self._get_title(season['title']),
+            ))
 
         return seasons
 
     def searchProgramById(self, id: str) -> Program:
-        cachetime = datetime.timedelta(hours=4)
+        """
+        Search programs by given ID
+
+        :param id:
+        :return:
+        """
+        cache_time = datetime.timedelta(hours=4)
 
         q = {
             "app_id": self.appid,
@@ -568,7 +583,7 @@ class YleAreena:
 
         url = f"https://{self.apidomain}/v1/programs/items/{id}.json" + self._qstr(q)
 
-        resp = self._dl_url(url, cachetime)
+        resp = self._dl_url(url, cache_time)
         data = resp['data']
 
         start = None  # Date and time when episode become available
@@ -584,17 +599,22 @@ class YleAreena:
         for c in data['subject']:
             categories.append(Category(c['id'], self._get_title(c['title'])))
 
-        return Program(data['id'],
-                       self._get_title(data['title']),
-                       self._get_title(data['description']),
-                       start,
-                       end,
-                       categories
-                       )
+        return Program(
+            data['id'],
+            self._get_title(data['title']),
+            self._get_title(data['description']),
+            start,
+            end,
+            categories,
+        )
 
     def searchPrograms(self, query: str = None, id: str = None, series: str = None,
-                       catids: list = [], excludeCats: list = []) -> ProgramList:
-        cachetime = datetime.timedelta(hours=4)
+                       categories_id_list: list = [], exclude_categories_list: list = []) -> ProgramList:
+        cache_time = datetime.timedelta(hours=4)
+        """
+        Search for program(s)
+        
+        """
 
         offset = 0
         limit = 100
@@ -619,12 +639,12 @@ class YleAreena:
 
         categories = []
 
-        if len(catids) > 0:
-            categories.extend(catids)
+        if len(categories_id_list) > 0:
+            categories.extend(categories_id_list)
 
-        if len(excludeCats) > 0:
-            # Exclude (Add '-' to front of category)
-            categories.extend(map(lambda x: f"-{x}", excludeCats))
+        if len(exclude_categories_list) > 0:
+            # Exclude (Add '-' to front of all categories)
+            categories.extend(map(lambda x: f"-{x}", exclude_categories_list))
 
         if len(categories) > 0:
             # Add to query
@@ -632,8 +652,8 @@ class YleAreena:
 
         url = f"https://{self.apidomain}/v1/programs/items.json" + self._qstr(q)
 
-        programs = []
-        resp = self._dl_url(url, cachetime)
+        programs: ProgramList = []
+        resp = self._dl_url(url, cache_time)
         for data in resp['data']:
             if not data['title']:
                 continue
@@ -651,20 +671,21 @@ class YleAreena:
                         end = self._get_date(p['endTime'])
                     break
 
-            catIds = []
+            category_ids_list: List[Category] = []
             for c in data['subject']:
-                catIds.append(Category(c['id'], self._get_title(c['title'])))
+                category_ids_list.append(Category(c['id'], self._get_title(c['title'])))
 
             if end is None:
                 # End was not given, use custom time
                 end = datetime.datetime.now() + datetime.timedelta(weeks=52 * 10)
 
-            programs.append(Program(data['id'],
-                                    self._get_title(data['title']),
-                                    self._get_title(data['description']),
-                                    start,
-                                    end,
-                                    catIds
-                                    ))
+            programs.append(Program(
+                data['id'],
+                self._get_title(data['title']),
+                self._get_title(data['description']),
+                start,
+                end,
+                category_ids_list
+            ))
 
         return programs
