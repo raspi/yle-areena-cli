@@ -319,12 +319,12 @@ class YleAreena:
     def getCategories(self) -> CategoryList:
         cachetime = datetime.timedelta(days=1)
         items: list = []
-        itemscount: int = -1
+        itemscount: int = None
 
         offset = 0
         limit = 100
 
-        while itemscount != -1 and len(items) != itemscount:
+        while len(items) != itemscount:
             url = f"https://{self.apidomain}/v1/programs/categories.json" + self._qstr({
                 "app_id": self.appid,
                 "app_key": self.appkey,
@@ -335,7 +335,7 @@ class YleAreena:
             resp = self._dl_url(url, cachetime)
             meta = resp['meta']
 
-            if itemscount == -1:
+            if itemscount is None:
                 itemscount = meta['count']
 
             offset += limit
